@@ -858,8 +858,11 @@ button { font: inherit; color: inherit; }
    main.js once a variant is chosen. */
 .ui-switch {
   position: fixed;
-  left: 0.875rem; bottom: 1rem;
-  z-index: 13;
+  /* Below the top bar, not at the bottom: under 1280px the timeline grows to
+     meet the left edge and the two collided, so clicks landed on the wrong
+     element. Up here there is clear space at every width. */
+  left: 0.875rem; top: 4rem;
+  z-index: 15;
   display: flex;
   align-items: center;
   gap: 0.25rem;
@@ -1016,7 +1019,7 @@ button { font: inherit; color: inherit; }
   .timeline__readout { order: -1; flex-basis: 100%; }
   .timeline__actions { margin-left: auto; }
 
-  .ui-switch { left: 0.5rem; bottom: auto; top: 3.75rem; }
+  .ui-switch { left: 0.625rem; top: 3.5rem; }
 }
 
 @media (max-width: 560px) {
