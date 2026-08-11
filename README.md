@@ -88,50 +88,42 @@ An illustrated nautical chart in 3/4 perspective. The full rules live in
   edges. On tall screens it still fills at least 68% of the height, otherwise it
   would shrink to a strip.
 
-## Interface and typography
+## Interface
 
-The widgets above the map follow **[shadcn/ui](https://ui.shadcn.com/docs/components)**:
-same design tokens, same component anatomy, same sizes — ported to plain CSS,
-since this project has no build step.
+The widgets speak the map's own language: the palette from `js/cartography.js`,
+thick ink outlines, rounded joins, and the **slab shadow** from
+[STYLE-GUIDE.md](STYLE-GUIDE.md) §1.3 — an offset with no blur, the mark of a
+drawn surface rather than a floating pane. Buttons squash when pressed: the slab
+shrinks and the cap drops onto it.
 
-| Widget | shadcn component | Key specs |
+Type is `ui-rounded` (SF Pro Rounded on Apple systems), which carries the cartoon
+register while staying a system font — no network request, no odd fallback.
+
+### Three variants
+
+One skeleton, three skins, switched with `data-ui` on `<html>`. Layout, sizes and
+behaviour are shared; only the surface treatment changes.
+
+| Variant | Idea | Surfaces |
 | --- | --- | --- |
-| Top bar, panel buttons | Button (`outline`, `ghost`, `default`) | `h-9` / `h-8` / `size-8` · `rounded-md` · `text-sm font-medium` |
-| Expedition chooser, Method | Dialog | overlay `black/50` · `rounded-lg border bg-background p-6 shadow-lg` · fade + `zoom-95` |
-| Expedition cards, context panel | Card | `rounded-xl border bg-card shadow-sm` |
-| Timeline scrubber | Slider | track `h-1.5 rounded-full bg-muted` · thumb `size-4` with a `ring-4` on hover |
-| Stop labels, stats | Badge | `rounded-full border px-2 py-0.5 text-xs` |
-| Port popover | Popover | `rounded-md border bg-popover shadow-md` |
+| `parchment` | a cartouche cut from the chart itself | paper, ink outline, brick accent |
+| `log` | the ship's log at night | deep teal, brass inner rim, gold accent |
+| `storybook` | pop: fat outlines, deep offsets | cream, 3px outline, 5px slab, saturated colour |
 
-Focus follows the shadcn signature everywhere: a 3px ring at `ring/50` plus a
-ring-coloured border. Tokens are the dark palette straight from the registry
-(`--background`, `--card`, `--muted-foreground`, `--radius: 0.625rem`, …).
+Try them with `?ui=parchment`, `?ui=log`, `?ui=storybook`, or with the switcher
+at the bottom left; the choice is remembered.
 
-**Liquid glass.** Every floating surface is translucent, so the chart keeps
-showing through: a high `saturate()` makes the colours underneath come alive, a
-hairline light border acts as the specular rim, and an inset highlight is the
-light catching the top edge. The piece that makes it work is `brightness()`
-inside `backdrop-filter`: it dims whatever lies below, so contrast no longer
-depends on the map. Measured on the lightest part of the chart, body text sits
-between 11.9:1 and 17.3:1 and secondary text between 4.75:1 and 6.9:1 — above
-WCAG AA throughout.
+> **The switcher is an evaluation tool, not part of the product.** Once a variant
+> is settled on, remove: the `.ui-switch` rules in `css/style.css`, the
+> `#ui-switch` block in `index.html`, and `initUiSwitch()` plus its call in
+> `js/main.js`. Keep the chosen variant's tokens in `:root`.
 
-**The map is untouched.** The illustrated chart keeps its own palette and its own
-line work, defined in `js/cartography.js` and [STYLE-GUIDE.md](STYLE-GUIDE.md).
-The neutral interface deliberately does not compete with it; the only accent that
-crosses over is the expedition colour, on the route and on the rule beside the
-current stop.
-
-Typography is shadcn's: **Geist**, falling back to the system stack when the font
-is not installed — no web font is fetched, so the site keeps making zero network
-requests. The face applies everywhere, including the "N" on the compass rose.
-
-Behaviour:
+### Behaviour
 
 - **The panel retracts ten seconds** after reaching a stop, and a dot on the tab
   signals unread text. Hovering or reading it keeps it open; clicking the tab
   turns the automatic retraction off for good.
-- **A single slim bar at the bottom**: controls, date and leg on one line.
+- **A single bar at the bottom**: controls, date and leg on one line.
 - **Following the ship the framing is wide** (74° of longitude).
 - When the panel comes or goes, the map **reclaims the freed space**.
 

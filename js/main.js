@@ -200,7 +200,33 @@ function selectVoyage(id, { step = null } = {}) {
 
 /* ------------------------------------------------------------------- boot */
 
+/**
+ * Interface variant, from ?ui= or from the last choice. Evaluation only:
+ * drop this function and its call once a variant is settled on.
+ */
+function initUiSwitch() {
+  const allowed = ['parchment', 'log', 'storybook'];
+  const fromUrl = new URLSearchParams(location.search).get('ui');
+  let current = allowed.includes(fromUrl) ? fromUrl
+    : (allowed.includes(localStorage.getItem('voyages:ui')) ? localStorage.getItem('voyages:ui') : 'parchment');
+
+  const apply = (v) => {
+    current = v;
+    document.documentElement.dataset.ui = v;
+    try { localStorage.setItem('voyages:ui', v); } catch { /* private mode */ }
+    for (const b of document.querySelectorAll('#ui-switch button')) {
+      b.setAttribute('aria-pressed', String(b.dataset.ui === v));
+    }
+  };
+
+  for (const b of document.querySelectorAll('#ui-switch button')) {
+    b.addEventListener('click', () => apply(b.dataset.ui));
+  }
+  apply(current);
+}
+
 async function boot() {
+  initUiSwitch();
   ui = new UI({
     voyages: VOYAGES,
     method: METHOD,

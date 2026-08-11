@@ -19,9 +19,8 @@
 <header class="topbar">
   <a class="brand" href="./" aria-label="Voyages, back to the start">
     <span class="brand__mark" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width="17" height="17">
-        <!-- compass star: concave four-pointer, the north arm drawn longer -->
-        <path d="M12 1.6 Q12.9 9 22 12 Q12.9 15 12 22.4 Q11.1 15 2 12 Q11.1 9 12 1.6 Z"
+      <svg viewBox="0 0 24 24" width="16" height="16">
+        <path d="M12 1.8 Q13 9 22.2 12 Q13 15 12 22.2 Q11 15 1.8 12 Q11 9 12 1.8 Z"
               fill="currentColor"/>
       </svg>
     </span>
@@ -126,6 +125,15 @@
 </div>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<!-- Variant switcher: an evaluation tool. Remove this block, the .ui-switch
+     rules in style.css and the readUi() call in main.js once one is chosen. -->
+<div id="ui-switch" class="ui-switch" role="group" aria-label="Interface style">
+  <span>Style</span>
+  <button type="button" data-ui="parchment">Parchment</button>
+  <button type="button" data-ui="log">Ship's log</button>
+  <button type="button" data-ui="storybook">Storybook</button>
+</div>
 
 <script type="module" src="./js/main.js"></script>
 <noscript>
