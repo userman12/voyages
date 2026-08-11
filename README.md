@@ -107,6 +107,15 @@ Focus follows the shadcn signature everywhere: a 3px ring at `ring/50` plus a
 ring-coloured border. Tokens are the dark palette straight from the registry
 (`--background`, `--card`, `--muted-foreground`, `--radius: 0.625rem`, …).
 
+**Liquid glass.** Every floating surface is translucent, so the chart keeps
+showing through: a high `saturate()` makes the colours underneath come alive, a
+hairline light border acts as the specular rim, and an inset highlight is the
+light catching the top edge. The piece that makes it work is `brightness()`
+inside `backdrop-filter`: it dims whatever lies below, so contrast no longer
+depends on the map. Measured on the lightest part of the chart, body text sits
+between 11.9:1 and 17.3:1 and secondary text between 4.75:1 and 6.9:1 — above
+WCAG AA throughout.
+
 **The map is untouched.** The illustrated chart keeps its own palette and its own
 line work, defined in `js/cartography.js` and [STYLE-GUIDE.md](STYLE-GUIDE.md).
 The neutral interface deliberately does not compete with it; the only accent that
