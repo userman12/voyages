@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Voyages — The routes that redrew the world</title>
+<meta name="description" content="An interactive atlas: six sea expeditions that redrew the world, traced on an illustrated chart with stops, dates and historical consequences.">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="stage" class="stage" aria-label="Interactive chart showing the expedition routes" role="img"></div>
+<div class="grain" aria-hidden="true"></div>
+<div class="vignette" aria-hidden="true"></div>
+<div id="pins" class="pins" aria-hidden="true"></div>
+
+<header class="topbar">
+  <a class="brand" href="./" aria-label="Voyages, back to the start">
+    <svg viewBox="0 0 40 40" width="30" height="30" aria-hidden="true">
+      <circle cx="20" cy="20" r="17" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".55"/>
+      <path d="M3 20h34M20 3c6 5.5 6 28.5 0 34M20 3c-6 5.5-6 28.5 0 34" fill="none" stroke="currentColor" stroke-width="1" opacity=".35"/>
+      <path d="M20 8.5 26 20l-6 11.5L14 20z" fill="currentColor" opacity=".9"/>
+    </svg>
+    <span class="brand__text">
+      <strong>Voyages</strong>
+      <em>The routes that redrew the world</em>
+    </span>
+  </a>
+
+  <div class="topbar__right">
+    <p id="now-playing" class="now-playing" hidden></p>
+    <button id="open-chooser" class="chip chip--primary" type="button" aria-haspopup="dialog">
+      <span class="chip__glyph" aria-hidden="true"></span>
+      Expeditions
+    </button>
+    <button id="open-method" class="chip" type="button">Method</button>
+  </div>
+</header>
+
+<!-- pop-up chooser -->
+<div id="chooser" class="chooser" hidden role="dialog" aria-modal="true" aria-labelledby="chooser-title">
+  <div class="chooser__backdrop" data-close></div>
+  <div class="chooser__sheet" role="document">
+    <button class="sheet__close" type="button" data-close aria-label="Close">×</button>
+    <header class="sheet__head">
+      <p class="eyebrow">Interactive atlas</p>
+      <h2 id="chooser-title">Choose an expedition</h2>
+      <p class="sheet__sub">Six documented voyages, from 1413 to 1836. The routes are teaching approximations.</p>
+    </header>
+    <ul id="voyage-list" class="voyage-grid"></ul>
+  </div>
+</div>
+
+<aside id="context-panel" class="panel" aria-label="Expedition details" aria-live="polite" hidden></aside>
+<button id="panel-toggle" class="panel-toggle" type="button" aria-expanded="true" aria-controls="context-panel" hidden>
+  <span aria-hidden="true">›</span>
+  <span class="visually-hidden">Show or hide the panel</span>
+</button>
+
+<section id="intro" class="intro">
+  <p class="eyebrow">Interactive atlas</p>
+  <h2 class="intro__title">Six expeditions, one ocean of consequences</h2>
+  <p class="intro__body">
+    Pick a voyage to watch the fleet leave port, cross the oceans and reach lands
+    that were already inhabited. The context includes what happened next.
+  </p>
+  <button id="intro-cta" class="cta" type="button">Choose an expedition</button>
+</section>
+
+<footer id="timeline" class="timeline" hidden>
+  <div class="timeline__row">
+    <div class="timeline__controls">
+      <button id="btn-play" class="ctrl ctrl--primary" type="button" aria-label="Play">
+        <span class="ctrl__glyph" data-glyph="play" aria-hidden="true"></span>
+      </button>
+      <button id="btn-prev" class="ctrl" type="button" aria-label="Previous stop">
+        <span class="ctrl__glyph" data-glyph="prev" aria-hidden="true"></span>
+      </button>
+      <button id="btn-next" class="ctrl" type="button" aria-label="Next stop">
+        <span class="ctrl__glyph" data-glyph="next" aria-hidden="true"></span>
+      </button>
+      <button id="btn-speed" class="ctrl ctrl--wide" type="button" aria-label="Playback speed">1×</button>
+    </div>
+
+    <div class="timeline__readout">
+      <strong id="tl-date">—</strong>
+      <span id="tl-leg">—</span>
+    </div>
+
+    <div class="timeline__actions">
+      <button id="btn-follow" class="ctrl ctrl--wide" type="button" aria-pressed="true">Follow ship</button>
+      <button id="btn-share" class="ctrl ctrl--wide" type="button">Share</button>
+    </div>
+  </div>
+
+  <div class="timeline__track">
+    <div class="track__rail" aria-hidden="true">
+      <div id="track-fill" class="track__fill"></div>
+      <div id="track-marks" class="track__marks"></div>
+    </div>
+    <input id="tl-range" class="track__input" type="range" min="0" max="1000" step="1" value="0"
+           aria-label="Voyage progress" aria-valuetext="Departure">
+    <div class="track__meta">
+      <span id="tl-start">—</span>
+      <span id="tl-dist">0 km covered</span>
+      <span id="tl-end">—</span>
+    </div>
+  </div>
+</footer>
+
+<div id="method" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="method-title">
+  <div class="modal__backdrop" data-close></div>
+  <div class="modal__card">
+    <button class="sheet__close" type="button" data-close aria-label="Close">×</button>
+    <h2 id="method-title">Method and sources</h2>
+    <div id="method-body" class="modal__body"></div>
+    <h3>Sources by expedition</h3>
+    <div id="method-sources" class="modal__sources"></div>
+  </div>
+</div>
+
+<div id="loader" class="loader">
+  <div class="loader__ring" aria-hidden="true"></div>
+  <p id="loader-text">Drawing the chart…</p>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script type="module" src="./js/main.js"></script>
+<noscript>
+  <p style="padding:2rem;color:#efe3c6;font-family:system-ui">
+    Voyages needs JavaScript to draw the interactive chart.
+  </p>
+</noscript>
+</body>
+</html>
