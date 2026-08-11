@@ -90,20 +90,41 @@ An illustrated nautical chart in 3/4 perspective. The full rules live in
 
 ## Interface and typography
 
-The interface appears when needed and retracts on its own: the chart is the stage.
+The widgets above the map follow **[shadcn/ui](https://ui.shadcn.com/docs/components)**:
+same design tokens, same component anatomy, same sizes — ported to plain CSS,
+since this project has no build step.
 
-- **The panel retracts ten seconds** after reaching a stop, and the tab on the
-  edge signals that there is unread text. Hovering or reading it keeps it open;
-  clicking the tab explicitly turns the automatic retraction off for good.
+| Widget | shadcn component | Key specs |
+| --- | --- | --- |
+| Top bar, panel buttons | Button (`outline`, `ghost`, `default`) | `h-9` / `h-8` / `size-8` · `rounded-md` · `text-sm font-medium` |
+| Expedition chooser, Method | Dialog | overlay `black/50` · `rounded-lg border bg-background p-6 shadow-lg` · fade + `zoom-95` |
+| Expedition cards, context panel | Card | `rounded-xl border bg-card shadow-sm` |
+| Timeline scrubber | Slider | track `h-1.5 rounded-full bg-muted` · thumb `size-4` with a `ring-4` on hover |
+| Stop labels, stats | Badge | `rounded-full border px-2 py-0.5 text-xs` |
+| Port popover | Popover | `rounded-md border bg-popover shadow-md` |
+
+Focus follows the shadcn signature everywhere: a 3px ring at `ring/50` plus a
+ring-coloured border. Tokens are the dark palette straight from the registry
+(`--background`, `--card`, `--muted-foreground`, `--radius: 0.625rem`, …).
+
+**The map is untouched.** The illustrated chart keeps its own palette and its own
+line work, defined in `js/cartography.js` and [STYLE-GUIDE.md](STYLE-GUIDE.md).
+The neutral interface deliberately does not compete with it; the only accent that
+crosses over is the expedition colour, on the route and on the rule beside the
+current stop.
+
+Typography is shadcn's: **Geist**, falling back to the system stack when the font
+is not installed — no web font is fetched, so the site keeps making zero network
+requests. The face applies everywhere, including the "N" on the compass rose.
+
+Behaviour:
+
+- **The panel retracts ten seconds** after reaching a stop, and a dot on the tab
+  signals unread text. Hovering or reading it keeps it open; clicking the tab
+  turns the automatic retraction off for good.
 - **A single slim bar at the bottom**: controls, date and leg on one line.
-- **Following the ship the framing is wide** (74° of longitude), so you can see
-  where it is heading and not only where it is.
+- **Following the ship the framing is wide** (74° of longitude).
 - When the panel comes or goes, the map **reclaims the freed space**.
-
-Typography: an editorial serif (Hoefler Text / Iowan Old Style / Baskerville)
-for titles, eyebrows, chart labels and buttons; **body copy stays sans**, because
-a serif over long paragraphs is tiring. The character comes from the chart, not
-from a novelty face.
 
 ## Method
 

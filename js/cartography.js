@@ -253,8 +253,8 @@ function compassSymbol() {
     <path d="${pts(4, 46, 9)}" fill="${C.gold500}" stroke="${C.ink900}" stroke-width="1.4"/>
     <path d="M0 0 L-6.4 -14 L0 -46 Z" fill="${C.brick500}"/>
     <circle r="3.4" fill="${C.ink900}"/>
-    <text x="0" y="-52" text-anchor="middle" font-size="13"
-          font-family="Georgia, serif" fill="${C.ink900}">N</text>
+    <text x="0" y="-52" text-anchor="middle" font-size="13" font-weight="600"
+          font-family="var(--font-sans)" fill="${C.ink900}">N</text>
   </symbol>`;
 }
 

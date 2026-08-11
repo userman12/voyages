@@ -128,7 +128,7 @@ export class UI {
       const li = el('li');
       const btn = el('button', 'voyage-card');
       btn.type = 'button';
-      btn.style.setProperty('--accent', v.accent);
+      btn.style.setProperty('--accent-color', v.accent);
       btn.setAttribute('aria-current', String(v.id === activeId));
       btn.innerHTML = `
         <svg class="card__map" viewBox="0 0 360 180" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
@@ -206,7 +206,7 @@ export class UI {
     const p = this.dom.panel;
     p.hidden = false;
     this.dom.panelToggle.hidden = false;
-    p.style.setProperty('--accent', accent || 'var(--gold)');
+    p.style.setProperty('--accent-color', accent || 'var(--border)');
     p.innerHTML = `<div class="ctx">${html}</div>`;
     p.scrollTop = 0;
     this.setPanelOpen(true);
@@ -266,7 +266,7 @@ export class UI {
       <p>${esc(voyage.goals)}</p>
       <div class="btn-row">
         <button class="cta" type="button" data-action="start">Begin the voyage</button>
-        <button class="btn btn--ghost" type="button" data-action="method">Sources</button>
+        <button class="btn btn--outline" type="button" data-action="method">Sources</button>
       </div>`;
     const p = this._panel(html, voyage.accent);
     p.querySelector('[data-action="start"]').addEventListener('click', () => this.h.onStart());
@@ -292,7 +292,7 @@ export class UI {
       ${nextStop ? `
       <hr class="ctx__divider">
       <h4>Next stop</h4>
-      <p>${esc(nextStop.name)} — <span style="color:var(--accent)">${esc(formatDay(nextStop.arriveDay))}</span></p>` : ''}
+      <p>${esc(nextStop.name)} — <span style="color:var(--foreground)">${esc(formatDay(nextStop.arriveDay))}</span></p>` : ''}
     `;
     this._panel(html, voyage.accent, { autoHide: true });
   }
@@ -344,7 +344,7 @@ export class UI {
 
       <div class="btn-row">
         <button class="cta" type="button" data-action="replay">Replay the voyage</button>
-        <button class="btn btn--ghost" type="button" data-action="other">Another expedition</button>
+        <button class="btn btn--outline" type="button" data-action="other">Another expedition</button>
       </div>`;
     const p = this._panel(html, voyage.accent);
     p.querySelector('[data-action="replay"]').addEventListener('click', () => this.h.onReplay());
@@ -356,7 +356,7 @@ export class UI {
   buildTimeline(route) {
     const { dom } = this;
     dom.timeline.hidden = false;
-    dom.timeline.style.setProperty('--accent', route.voyage.accent);
+    dom.timeline.style.setProperty('--accent-color', route.voyage.accent);
     dom.start.textContent = formatDay(route.startDay, { short: true });
     dom.end.textContent = formatDay(route.endDay, { short: true });
     dom.marks.innerHTML = '';
