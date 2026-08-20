@@ -426,8 +426,15 @@ export class UI {
       label.addEventListener('click', () => this.h.onJumpStop(i));
       wrap.appendChild(label);
       this.dom.pins.appendChild(wrap);
-      return { wrap, label, stop, index: i };
+      return { wrap, label, stop, index: i, halfWidth: 0 };
     });
+    // Measured once, right after every label is in the DOM, in its own pass:
+    // updatePins() runs every animation frame and used to read offsetWidth
+    // inside the same loop that writes style.transform, which forced a
+    // synchronous layout per pin, per frame — with ~20 stops that alone was
+    // enough to visibly stall dragging. Reading it here, once, off the hot
+    // path, is the fix; the label's text never changes afterwards anyway.
+    for (const p of this.pins) p.halfWidth = p.label.offsetWidth / 2 + 8;
     this.originCard = null;
   }
 
@@ -498,8 +505,7 @@ export class UI {
 
       placed.push({ x: out.x, y: out.y });
       // kept inside the viewport: the label is wide and would overflow at the edges
-      const half = pin.label.offsetWidth / 2 + 8;
-      const x = Math.min(Math.max(out.x, half), window.innerWidth - half);
+      const x = Math.min(Math.max(out.x, pin.halfWidth), window.innerWidth - pin.halfWidth);
       pin.wrap.style.transform = `translate(${x}px, ${out.y}px) translate(-50%, -50%)`;
       pin.wrap.dataset.reached = String(pin.index <= currentIndex);
     }

@@ -334,6 +334,10 @@ async function boot() {
       setProgress(state.progress + dt / duration);
     }
 
+    scene.update();
+
+    // after update(), not before: pin labels read the camera/rotation state
+    // update() just computed, instead of trailing it by one frame
     if (state.route) {
       routeFade = Math.min(1, routeFade + dt * 1.4);
       scene.setRouteOpacity(routeFade);
@@ -342,7 +346,6 @@ async function boot() {
       routeFade = 0;
     }
 
-    scene.update();
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);

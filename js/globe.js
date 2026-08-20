@@ -34,12 +34,17 @@ const DEG_WIDE = 200;
 const DEG_CLOSE = 40;
 
 /**
- * Texture painted at exactly PPD pixels per degree — the same density the
- * flat chart uses — so relief, trees and halo bands come out the same visual
- * size as on the flat map, not coincidentally close.
+ * Texture size: a power of two (required for mipmapping on WebGL1 — an
+ * NPOT texture silently falls back to no mipmaps there, which is both
+ * slower to sample at a distance and visibly aliased). 4096 is close to
+ * WORLD_W (360*PPD=5040, the flat map's own density) without the extra
+ * ~34% of texels that density would cost for no visible gain at the
+ * globe's short, always-zoomed-out viewing range.
  */
-const TEX_W = 360 * PPD;
+const TEX_W = 4096;
 const TEX_H = TEX_W / 2;
+/** Symbols are drawn at the flat map's own size (PPD); scale them to match. */
+const TEX_SYM_SCALE = TEX_W / (360 * PPD);
 
 /* --------------------------------------------------------- lat/lon <-> 3D
  * One convention, used everywhere below: lon 0 / lat 0 sits on +Z (so it
@@ -77,7 +82,7 @@ const _q2 = new THREE.Quaternion();
  * texture painted below is guaranteed to line up — no separate convention to
  * keep in sync.
  * ------------------------------------------------------------------------- */
-function buildSphereGeometry(radius, segLon = 96, segLat = 48) {
+function buildSphereGeometry(radius, segLon = 64, segLat = 32) {
   const pos = [];
   const uv = [];
   const idx = [];
@@ -115,8 +120,9 @@ function buildSphereGeometry(radius, segLon = 96, segLat = 48) {
  * tiling — a sphere already wraps) instead of the flat chart's projX/projY.
  * ------------------------------------------------------------------------- */
 const f = (n) => (Math.round(n * 10) / 10).toString();
-const equX = (lon) => (lon + 180) * PPD;
-const equY = (lat) => (90 - lat) * PPD;
+const TEX_PPD = PPD * TEX_SYM_SCALE;
+const equX = (lon) => (lon + 180) * TEX_PPD;
+const equY = (lat) => (90 - lat) * TEX_PPD;
 
 function eqPolyPath(poly) {
   let d = '';
@@ -128,16 +134,16 @@ function eqPolyPath(poly) {
 function eqDotsPath() {
   let d = '';
   for (const [lon, lat, r] of DOTS) {
-    const cx = equX(lon), cy = equY(lat), rr = Math.max(r * PPD, 3);
+    const cx = equX(lon), cy = equY(lat), rr = Math.max(r * TEX_PPD, 3);
     d += `M${f(cx - rr)} ${f(cy)}a${f(rr)} ${f(rr)} 0 1 0 ${f(rr * 2)} 0`
        + `a${f(rr)} ${f(rr)} 0 1 0 ${f(-rr * 2)} 0Z`;
   }
   return d;
 }
 const eqUse = ({ lon, lat, sym, s = 1, opacity }) => {
-  const x = equX(lon), y = equY(lat);
+  const x = equX(lon), y = equY(lat), sc = s * TEX_SYM_SCALE;
   return `<use href="#${sym}" x="${f(x)}" y="${f(y)}" transform-origin="${f(x)} ${f(y)}"
-    ${s !== 1 ? `transform="scale(${f(s)})"` : ''} ${opacity != null ? `opacity="${opacity}"` : ''}/>`;
+    transform="scale(${f(sc)})" ${opacity != null ? `opacity="${opacity}"` : ''}/>`;
 };
 
 function buildWorldSVG() {
@@ -148,8 +154,8 @@ function buildWorldSVG() {
     [31, C.sea700, 0.5, '9 8'], [23, C.sea700, 1, null],
     [15, C.sea500, 1, null], [8, C.sea300, 0.85, null]
   ].map(([w, col, op, dash]) => `<path d="${outer}" fill="none" stroke="${col}"
-      stroke-width="${w}" stroke-linejoin="round" opacity="${op}"
-      ${dash ? `stroke-dasharray="${dash}"` : ''}/>`).join('');
+      stroke-width="${f(w * TEX_SYM_SCALE)}" stroke-linejoin="round" opacity="${op}"
+      ${dash ? `stroke-dasharray="${f(9 * TEX_SYM_SCALE)} ${f(8 * TEX_SYM_SCALE)}"` : ''}/>`).join('');
   const layer = (list) => list.map(eqUse).join('');
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${TEX_W}" height="${TEX_H}"
@@ -159,15 +165,15 @@ function buildWorldSVG() {
     ${layer(waves)}
     ${halo}
     <path d="${outer}" fill="${C.paper200}"/>
-    <path d="${outer}" fill="none" stroke="${C.paper300}" stroke-width="7" stroke-linejoin="round" opacity=".75"/>
+    <path d="${outer}" fill="none" stroke="${C.paper300}" stroke-width="${f(7 * TEX_SYM_SCALE)}" stroke-linejoin="round" opacity=".75"/>
     <path d="${outer}" fill="${C.paper200}"/>
     <clipPath id="tex-seas"><path d="${seas}"/></clipPath>
     <g clip-path="url(#tex-seas)">
       <path d="${seas}" fill="${C.sea500}"/>
-      <path d="${seas}" fill="none" stroke="${C.sea300}" stroke-width="14" opacity=".7"/>
+      <path d="${seas}" fill="none" stroke="${C.sea300}" stroke-width="${f(14 * TEX_SYM_SCALE)}" opacity=".7"/>
     </g>
-    <path d="${outer}" fill="none" stroke="${C.ink900}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
-    <path d="${seas}" fill="none" stroke="${C.ink900}" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="${outer}" fill="none" stroke="${C.ink900}" stroke-width="${f(2.4 * TEX_SYM_SCALE)}" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="${seas}" fill="none" stroke="${C.ink900}" stroke-width="${f(1.8 * TEX_SYM_SCALE)}" stroke-linejoin="round"/>
     ${layer(mtn)}
     ${layer(trees)}
     ${layer(decor)}
@@ -287,7 +293,11 @@ export class Globe {
     this.canvas.className = 'map';
     host.appendChild(this.canvas);
 
-    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
+    // Antialiasing multiplies fill-rate cost (typically 4x the samples) for a
+    // scene whose detail already comes from a baked texture, not sharp
+    // geometric edges — a poor trade on integrated/software GPUs, which is
+    // exactly where this project's "no lag" goal is hardest to hit.
+    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: false, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.setSize(this.w, this.h, false);
 
@@ -307,7 +317,7 @@ export class Globe {
     // cartoon ink rim: a slightly larger sphere, seen from inside its back
     // face, gives the flat map's hand-inked outline circle for free
     const rim = new THREE.Mesh(
-      new THREE.SphereGeometry(R_SPHERE * 1.012, 48, 32),
+      new THREE.SphereGeometry(R_SPHERE * 1.012, 32, 20),
       new THREE.MeshBasicMaterial({ color: C.ink900, side: THREE.BackSide })
     );
     this.world.add(rim);
@@ -359,7 +369,7 @@ export class Globe {
     this.tween = { from: { lon: from, lat: this.lat0, t: this.zoomT }, to: target, t: 0, duration: duration / 1000 };
   }
 
-  fitRoute(route, { duration = 1800 } = {}) {
+  fitRoute(route, { duration = 1800, insetRight = 0, insetBottom = 0 } = {}) {
     // Centre on the ship, not on the route's centroid: a round-the-world
     // track has no centre that shows all of it, and the centroid of one can
     // sit at the antipode of the departure, hiding the ship behind the globe.
@@ -371,7 +381,38 @@ export class Globe {
       maxAng = Math.max(maxAng, Math.acos(dot));
     }
     const span = clamp((maxAng * 180 / Math.PI) * 2.2, DEG_CLOSE, DEG_WIDE);
+    this._setInset(insetRight, insetBottom);
     this.flyTo({ lat: here.lat, lon: here.lon, deg: span, duration });
+  }
+
+  /**
+   * Shifts what the camera frames, without distorting the sphere, to keep
+   * the globe clear of the panel — the same job insetRight/insetBottom do
+   * for the flat map's orthographic camera, done here with an off-axis
+   * perspective frustum (the standard technique for tiled/shifted
+   * rendering) since simply zooming out would still leave the ship
+   * centred underneath the panel rather than actually clear of it.
+   */
+  _setInset(insetRight, insetBottom) {
+    this._insetR = insetRight;
+    this._insetB = insetBottom;
+    this._applyInset();
+  }
+
+  _applyInset() {
+    const ir = this._insetR || 0, ib = this._insetB || 0;
+    if (ir <= 0 && ib <= 0) { this.camera.clearViewOffset(); }
+    else {
+      // The real canvas becomes the sub-window [ir, ib, w, h] of a virtual
+      // frame (w+ir) x (h+ib); that virtual frame's own centre — where the
+      // sphere naturally renders — then lands at the centre of the *visible*
+      // (non-obscured) area of the real canvas instead of the canvas's own
+      // centre.
+      this.camera.setViewOffset(this.w + ir, this.h + ib, ir, ib, this.w, this.h);
+    }
+    // setViewOffset()/clearViewOffset() stage the change; this is what
+    // actually bakes it into projectionMatrix.
+    this.camera.updateProjectionMatrix();
   }
 
   setFollow(v) {
@@ -385,19 +426,21 @@ export class Globe {
 
   _bindInput() {
     const el = this.canvas;
-    let dragging = false, lastX = 0, lastY = 0;
+    let dragging = false, lastX = 0, lastY = 0, lastT = 0;
     const pointers = new Map();
     let pinchDist = 0;
 
     const userTook = () => {
       this.tween = null;
+      this._spin = null;
       if (this.follow) { this.follow = false; this.onUserInteract?.(); }
     };
 
     el.addEventListener('pointerdown', (e) => {
       pointers.set(e.pointerId, [e.clientX, e.clientY]);
       if (pointers.size === 1) {
-        dragging = true; lastX = e.clientX; lastY = e.clientY;
+        dragging = true; lastX = e.clientX; lastY = e.clientY; lastT = performance.now();
+        this._spin = null;
         el.setPointerCapture(e.pointerId);
       } else if (pointers.size === 2) {
         const [a, b] = [...pointers.values()];
@@ -418,16 +461,33 @@ export class Globe {
       }
       if (!dragging) return;
       userTook();
+      const now = performance.now();
+      const dt = Math.max((now - lastT) / 1000, 1 / 240);
       // fixed drag sensitivity: degrees per pixel dragged, independent of zoom
       const k = 0.28;
-      this.setRotation(this.lon0 - (e.clientX - lastX) * k, this.lat0 + (e.clientY - lastY) * k);
-      lastX = e.clientX; lastY = e.clientY;
+      const dLon = -(e.clientX - lastX) * k;
+      const dLat = (e.clientY - lastY) * k;
+      this.setRotation(this.lon0 + dLon, this.lat0 + dLat);
+      // low-pass filtered velocity, for momentum on release — smoothed so a
+      // single jittery final move (common right before pointerup) doesn't
+      // launch the globe off in a direction the drag didn't actually go
+      const vLon = dLon / dt, vLat = dLat / dt;
+      this._dragVel = this._dragVel
+        ? { lon: lerp(this._dragVel.lon, vLon, 0.5), lat: lerp(this._dragVel.lat, vLat, 0.5) }
+        : { lon: vLon, lat: vLat };
+      lastX = e.clientX; lastY = e.clientY; lastT = now;
     });
 
     const release = (e) => {
+      if (dragging && pointers.size === 1 && this._dragVel) {
+        // flick to spin: only longitude carries momentum — a globe coasting
+        // in latitude too reads as tumbling rather than turning
+        const v = this._dragVel;
+        if (Math.abs(v.lon) > 12) this._spin = { lon: v.lon };
+      }
       pointers.delete(e.pointerId);
       if (pointers.size < 2) pinchDist = 0;
-      if (pointers.size === 0) dragging = false;
+      if (pointers.size === 0) { dragging = false; this._dragVel = null; }
     };
     el.addEventListener('pointerup', release);
     el.addEventListener('pointercancel', release);
@@ -449,6 +509,7 @@ export class Globe {
     this.h = Math.max(1, r.height);
     this.camera.aspect = this.w / this.h;
     this.camera.updateProjectionMatrix();
+    this._applyInset();
     this.renderer.setSize(this.w, this.h, false);
   }
 
@@ -631,10 +692,14 @@ export class Globe {
     }
   }
 
-  /** Screen-pixel delta between two world points, for heading and bob math. */
+  /**
+   * Screen-pixel delta between two world points, for heading math. Relies on
+   * world/camera matrices already being current for this frame (update()
+   * refreshes them once, before any of this runs) — calling
+   * updateMatrixWorld() here too used to mean a full scene-graph traversal
+   * per sprite, per frame, on top of the one update() already did.
+   */
   _screenDelta(a, b) {
-    this.world.updateMatrixWorld();
-    this.camera.updateMatrixWorld();
     const pa = a.clone().applyMatrix4(this.world.matrixWorld).project(this.camera);
     const pb = b.clone().applyMatrix4(this.world.matrixWorld).project(this.camera);
     return [(pb.x - pa.x) * this.w / 2, -(pb.y - pa.y) * this.h / 2];
@@ -669,12 +734,27 @@ export class Globe {
       while (target - this.lon0 > 180) target -= 360;
       while (target - this.lon0 < -180) target += 360;
       this.setRotation(lerp(this.lon0, target, k), lerp(this.lat0, this.shipSample.lat, k));
+    } else if (this._spin && !this.reducedMotion) {
+      // Coasts after a flick, decaying exponentially — the drag itself
+      // stops exactly where the pointer does, but a dead stop on release
+      // is what made this feel stiff to turn; friction is tuned so a firm
+      // flick glides for roughly a second, not a lazy Susan.
+      const friction = 2.6;
+      this.setRotation(this.lon0 + this._spin.lon * dt, this.lat0);
+      this._spin.lon *= Math.exp(-friction * dt);
+      if (Math.abs(this._spin.lon) < 2) this._spin = null;
     } else if (!this.route && !this.reducedMotion) {
       this.setRotation(this.lon0 + dt * 1.8, this.lat0);
     }
 
     worldQuaternion(this.lon0, this.lat0, this.world.quaternion);
     this.camera.position.set(0, 0, this.camDist);
+    // Refreshed once here, not once per pin/sprite: this used to be the
+    // single biggest cost on screens with many stops, since ui.js calls
+    // project() per visible pin every frame and each call was re-walking
+    // the whole scene graph on its own.
+    this.world.updateMatrixWorld();
+    this.camera.updateMatrixWorld();
 
     if (this.route) this._drawActors();
 
@@ -697,10 +777,12 @@ export class Globe {
     this.renderer.render(this.scene, this.camera);
   }
 
-  /** Screen coordinates of a point, for the HTML pin labels. */
+  /**
+   * Screen coordinates of a point, for the HTML pin labels. Called once per
+   * visible stop, every frame — reads the matrices update() already
+   * refreshed this frame rather than recomputing them itself.
+   */
   project(lat, lon, out = {}) {
-    this.world.updateMatrixWorld();
-    this.camera.updateMatrixWorld();
     const local = unitVec(lat, lon).multiplyScalar(R_SPHERE);
     const normal = local.clone().normalize();
     const world = local.applyMatrix4(this.world.matrixWorld);
