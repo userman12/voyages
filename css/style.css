@@ -1,16 +1,11 @@
 /* =========================================================================
    Voyages — interface
 
-   The widgets share the map's own language: the palette from
-   js/cartography.js, thick ink outlines, rounded joins, and the slab shadow
-   from STYLE-GUIDE.md §1.3 — an offset with no blur, the mark of a drawn
-   surface rather than a floating pane.
-
-   Three variants ride on the same skeleton, switched with data-ui on <html>:
-     parchment  cartouche cut from the chart itself
-     log        the ship's log: night surfaces, brass frames
-     storybook  pop: fat outlines, deep offsets, saturated colour
-   Layout, sizes and behaviour are shared; only the skin changes.
+   Storybook skin: the widgets share the map's own language — the palette
+   from js/cartography.js, thick ink outlines, rounded joins, and the slab
+   shadow from STYLE-GUIDE.md §1.3 — an offset with no blur, the mark of a
+   drawn surface rather than a floating pane. Fat 3px outlines, a 5px slab
+   and saturated colour push it toward a storybook page.
    ========================================================================= */
 
 :root {
@@ -31,22 +26,22 @@
   --ink-900: #2B1F14;
   --ink-600: #5A4632;
 
-  /* --- semantic slots, redefined per variant further down */
-  --surface: var(--paper-100);
-  --surface-2: var(--paper-200);
-  --surface-sunk: var(--paper-300);
-  --text: var(--ink-900);
-  --text-soft: var(--ink-600);
-  --line: var(--ink-900);
-  --line-w: 2px;
-  --accent: var(--brick-500);
-  --accent-text: var(--paper-100);
-  --highlight: var(--gold-500);
+  /* --- storybook: fat outlines, deep offsets, saturated colour */
+  --surface: #FFF6E3;
+  --surface-2: #FFE8B8;
+  --surface-sunk: #F0D294;
+  --text: #22160C;
+  --text-soft: #6B5230;
+  --line: #22160C;
+  --line-w: 3px;
+  --accent: #E24B33;
+  --accent-text: #FFF6E3;
+  --highlight: #FFC53D;
 
   /* the slab: an offset with no blur, like a drawn shape lifted off the page */
-  --slab: 3px;
-  --radius: 14px;
-  --radius-sm: 10px;
+  --slab: 5px;
+  --radius: 20px;
+  --radius-sm: 14px;
   --radius-pill: 999px;
 
   /* A rounded face carries the cartoon register while staying a system font,
@@ -168,8 +163,7 @@ button { font: inherit; color: inherit; }
 .toast,
 .chooser__sheet,
 .modal__card,
-.voyage-card,
-.ui-switch {
+.voyage-card {
   background: var(--surface);
   border: var(--line-w) solid var(--line);
   box-shadow: 0 var(--slab) 0 0 var(--line);
@@ -853,135 +847,18 @@ button { font: inherit; color: inherit; }
 }
 .toast--on { opacity: 1; transform: translate(-50%, 0); }
 
-/* Variant switcher — an evaluation tool, not part of the product.
-   Remove this block, the markup in index.html and the readUi() call in
-   main.js once a variant is chosen. */
-.ui-switch {
-  position: fixed;
-  /* Below the top bar, not at the bottom: under 1280px the timeline grows to
-     meet the left edge and the two collided, so clicks landed on the wrong
-     element. Up here there is clear space at every width. */
-  left: 0.875rem; top: 4rem;
-  z-index: 15;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem;
-  border-radius: var(--radius-pill);
-}
-.ui-switch span {
-  padding: 0 0.5rem;
-  font-size: 0.6875rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: .06em;
-  color: var(--text-soft);
-}
-.ui-switch button {
-  height: 1.75rem;
-  padding: 0 0.625rem;
-  border: 0;
-  border-radius: var(--radius-pill);
-  background: transparent;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--text-soft);
-  cursor: pointer;
-}
-.ui-switch button:hover { background: var(--surface-2); color: var(--text); }
-.ui-switch button[aria-pressed="true"] {
-  background: var(--accent);
-  color: var(--accent-text);
-}
 
 /* ==========================================================================
-   VARIANT 1 — PARCHMENT (default): a cartouche cut from the chart
+   STORYBOOK — fat outlines, deep offsets, saturated colour
+   (was one of three switchable variants; this is the one that stuck)
    ========================================================================== */
 
-:root, [data-ui="parchment"] {
-  --surface: var(--paper-100);
-  --surface-2: var(--paper-200);
-  --surface-sunk: var(--paper-300);
-  --text: var(--ink-900);
-  --text-soft: var(--ink-600);
-  --line: var(--ink-900);
-  --line-w: 2px;
-  --slab: 3px;
-  --accent: var(--brick-500);
-  --accent-text: var(--paper-100);
-  --highlight: var(--gold-500);
-  --radius: 14px;
-  --radius-sm: 10px;
-}
-
-/* ==========================================================================
-   VARIANT 2 — SHIP'S LOG: night surfaces, brass frames
-   ========================================================================== */
-
-[data-ui="log"] {
-  --surface: #123240;
-  --surface-2: #1B4354;
-  --surface-sunk: #0B2530;
-  --text: var(--paper-100);
-  --text-soft: #A9BCC0;
-  --line: #061A22;
-  --line-w: 2px;
-  --slab: 3px;
-  --accent: var(--gold-500);
-  --accent-text: #16202A;
-  --highlight: var(--sea-300);
-  --radius: 12px;
-  --radius-sm: 9px;
-}
-/* brass rim: a warm inner edge, the way fittings catch light */
-[data-ui="log"] .brand,
-[data-ui="log"] .chip,
-[data-ui="log"] .panel,
-[data-ui="log"] .intro,
-[data-ui="log"] .timeline,
-[data-ui="log"] .chooser__sheet,
-[data-ui="log"] .modal__card,
-[data-ui="log"] .voyage-card,
-[data-ui="log"] .origin-card,
-[data-ui="log"] .panel-toggle,
-[data-ui="log"] .ui-switch {
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--gold-500) 35%, transparent),
-    0 var(--slab) 0 0 var(--line);
-}
-[data-ui="log"] .card__facts span,
-[data-ui="log"] .tag { background: var(--surface-sunk); color: var(--text); }
-[data-ui="log"] .card__land { fill: var(--paper-300); }
-[data-ui="log"] .ctrl[aria-pressed="true"] { color: var(--ink-900); }
-
-/* ==========================================================================
-   VARIANT 3 — STORYBOOK: fat outlines, deep offsets, saturated colour
-   ========================================================================== */
-
-[data-ui="storybook"] {
-  --surface: #FFF6E3;
-  --surface-2: #FFE8B8;
-  --surface-sunk: #F0D294;
-  --text: #22160C;
-  --text-soft: #6B5230;
-  --line: #22160C;
-  --line-w: 3px;
-  --slab: 5px;
-  --accent: #E24B33;
-  --accent-text: #FFF6E3;
-  --highlight: #FFC53D;
-  --radius: 20px;
-  --radius-sm: 14px;
-}
-[data-ui="storybook"] h1,
-[data-ui="storybook"] h2,
-[data-ui="storybook"] h3,
-[data-ui="storybook"] h4 { letter-spacing: -0.02em; }
-[data-ui="storybook"] .brand__mark { border: 2px solid var(--line); }
-[data-ui="storybook"] .now-playing { background: var(--highlight); }
-[data-ui="storybook"] .card__facts span { background: var(--highlight); }
-[data-ui="storybook"] .voyage-card:hover { transform: translateY(-4px) rotate(-.5deg); }
-[data-ui="storybook"] .stop-card { border-left-width: 8px; }
+h1, h2, h3, h4 { letter-spacing: -0.02em; }
+.brand__mark { border: 2px solid var(--line); }
+.now-playing { background: var(--highlight); }
+.card__facts span { background: var(--highlight); }
+.voyage-card:hover { transform: translateY(-4px) rotate(-.5deg); }
+.stop-card { border-left-width: 8px; }
 
 /* ==========================================================================
    RESPONSIVE
@@ -1018,15 +895,12 @@ button { font: inherit; color: inherit; }
   .timeline__row { flex-wrap: wrap; gap: 0.5rem; }
   .timeline__readout { order: -1; flex-basis: 100%; }
   .timeline__actions { margin-left: auto; }
-
-  .ui-switch { left: 0.625rem; top: 3.5rem; }
 }
 
 @media (max-width: 560px) {
   .brand__word { display: none; }
   .brand { padding: 0 0.375rem; }
   .timeline__actions .ctrl--sm:first-child { display: none; }
-  .ui-switch span { display: none; }
 }
 
 @media (max-height: 620px) { .panel { max-height: 38vh; } }

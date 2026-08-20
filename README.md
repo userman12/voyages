@@ -90,33 +90,20 @@ An illustrated nautical chart in 3/4 perspective. The full rules live in
 
 ## Interface
 
-The widgets speak the map's own language: the palette from `js/cartography.js`,
-thick ink outlines, rounded joins, and the **slab shadow** from
-[STYLE-GUIDE.md](STYLE-GUIDE.md) §1.3 — an offset with no blur, the mark of a
-drawn surface rather than a floating pane. Buttons squash when pressed: the slab
-shrinks and the cap drops onto it.
+Storybook skin: the widgets speak the map's own language — the palette from
+`js/cartography.js`, thick ink outlines, rounded joins, and the **slab shadow**
+from [STYLE-GUIDE.md](STYLE-GUIDE.md) §1.3 — an offset with no blur, the mark of
+a drawn surface rather than a floating pane. Buttons squash when pressed: the
+slab shrinks and the cap drops onto it. Fat 3px outlines, a 5px slab and
+saturated colour push the whole thing toward a storybook page.
 
-Type is `ui-rounded` (SF Pro Rounded on Apple systems), which carries the cartoon
-register while staying a system font — no network request, no odd fallback.
+Type is `ui-rounded` (SF Pro Rounded on Apple systems), which carries the
+cartoon register while staying a system font — no network request, no odd
+fallback.
 
-### Three variants
-
-One skeleton, three skins, switched with `data-ui` on `<html>`. Layout, sizes and
-behaviour are shared; only the surface treatment changes.
-
-| Variant | Idea | Surfaces |
-| --- | --- | --- |
-| `parchment` | a cartouche cut from the chart itself | paper, ink outline, brick accent |
-| `log` | the ship's log at night | deep teal, brass inner rim, gold accent |
-| `storybook` | pop: fat outlines, deep offsets | cream, 3px outline, 5px slab, saturated colour |
-
-Try them with `?ui=parchment`, `?ui=log`, `?ui=storybook`, or with the switcher
-at the bottom left; the choice is remembered.
-
-> **The switcher is an evaluation tool, not part of the product.** Once a variant
-> is settled on, remove: the `.ui-switch` rules in `css/style.css`, the
-> `#ui-switch` block in `index.html`, and `initUiSwitch()` plus its call in
-> `js/main.js`. Keep the chosen variant's tokens in `:root`.
+This was settled on after trying two other skins (a plain parchment cartouche
+and a night-time "ship's log") side by side through a live switcher; storybook
+won and the other two, and the switcher itself, were removed.
 
 ### Behaviour
 
