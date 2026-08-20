@@ -4,7 +4,9 @@ An interactive historical atlas: six sea expeditions traced on an illustrated
 chart, with dated stops, narrative cards, documented consequences and sources.
 
 Entirely static: plain HTML, CSS and ES modules. No build step, no framework,
-no backend, no API keys — and **no dependencies at all**.
+no backend, no API keys. The one runtime dependency is **Three.js**, loaded
+from a CDN by an import map — it draws the 3D globe. Nothing else in the app
+needs it: the flat chart is plain hand-rolled SVG, as it always was.
 
 ## Running locally
 
@@ -28,7 +30,7 @@ index.html            app shell
 css/style.css         theme, layout, responsive, prefers-reduced-motion
 js/main.js            state, playback, URL sync
 js/scene.js           flat view: 2D camera, route, animated ship, markers
-js/globe.js           globe view: same chart under an orthographic projection
+js/globe.js           globe view: the same chart, WebGL, via Three.js
 js/cartography.js     chart drawing: symbols, land, relief, decorations
 js/geo.js             routes on the sphere, longitude unwrapping, time model
 js/format.js          dates, durations and distances
@@ -93,15 +95,37 @@ An illustrated nautical chart in 3/4 perspective. The full rules live in
 
 ## Globe view
 
-The same chart on a sphere — not a 3D render, and not a second set of artwork:
-the identical symbols, palette and line work run through an **orthographic
-projection** instead of an equirectangular one. `decorItems()` in
-`js/cartography.js` hands both views the same seeded scatter of relief, trees
-and waves, so a mountain sits on the same ridge either way.
+The same chart, wrapped on an actual sphere and rendered by WebGL through
+Three.js — not a second set of artwork and not a photorealistic Earth. The
+land, relief, trees, sea and coastal halos are painted **once** onto a single
+equirectangular texture, using the exact same drawing code as the flat chart
+(`decorItems()` in `js/cartography.js`, just projected without the flat
+map's squash and tiling), then wrapped on a sphere at the flat chart's own
+pixel density — a mountain is the same visual size either way.
 
-- Points behind the horizon are **pushed out onto the limb** rather than
-  dropped, so a continent crossing the edge closes along the rim instead of
-  being cut by a chord across its own middle.
+An earlier version of this view was plain SVG: an orthographic projection
+redrawn by hand on every rotation step, which meant rebuilding a couple of
+thousand DOM nodes each frame. That was what made it laggy, not the amount of
+geometry — so the fix was not "optimise the redraw", it was "stop redrawing".
+Confirmed with a `MutationObserver` on the map's container during four
+seconds of active rotation: the SVG version churned continuously; this one
+produces zero DOM mutations, because rotating the globe is now one GPU-side
+quaternion update.
+
+Everything that moves — the ship, the port pins, the town markers — is a
+small billboard sprite, rasterised once from the same SVG symbols the flat
+chart uses and just repositioned each frame; a wake sprite shows only while
+the ship is actually under way. The route is two thin lines (sailed, solid;
+still to sail, dashed) rather than the flat chart's thick ribbon — WebGL line
+width is capped at ~1px on most GPUs, and a full ribbon mesh wasn't worth
+building for one secondary element when the coastline, relief and vegetation,
+the dominant visual content, are pixel-identical to the flat map by
+construction.
+
+- Points behind the horizon are handled by ordinary depth testing — the
+  camera stays fixed and the *world* rotates, so a sprite on the far side of
+  the sphere is simply occluded by the sphere itself, the same way it would
+  be in reality.
 - **Following the ship turns the globe gradually** — it eases toward the ship
   rather than tracking it, so a voyage reads as the world rolling underneath.
 - The zoom range is deliberately short: past a point a sphere stops reading as
@@ -109,6 +133,10 @@ and waves, so a mountain sits on the same ridge either way.
 - Framing centres on **the ship, not the route's centroid** — a round-the-world
   track has no centre that shows all of it, and the centroid of one can sit at
   the antipode of the departure.
+- The rotation math (which quaternion centres the view on a given lat/lon)
+  has a runnable check: open the app with `?selftest=globe` and read the
+  console, or `import('./js/globe.js').then(m => m.__selfTestWorldQuaternion())`
+  in a browser context.
 
 ## Interface
 
