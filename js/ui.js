@@ -50,6 +50,8 @@ export class UI {
       methodBody: $('#method-body'),
       methodSources: $('#method-sources'),
       openMethod: $('#open-method'),
+      toggleView: $('#toggle-view'),
+      toggleViewLabel: $('#toggle-view-label'),
       loader: $('#loader'),
       toast: $('#toast')
     };
@@ -97,6 +99,7 @@ export class UI {
     dom.panel.addEventListener('focusin', () => this._holdPanel(true));
     dom.panel.addEventListener('focusout', () => this._holdPanel(false));
 
+    dom.toggleView.addEventListener('click', () => h.onViewToggle());
     dom.openMethod.addEventListener('click', () => this.openMethod());
     dom.modal.addEventListener('click', (e) => {
       if (e.target.hasAttribute('data-close')) this.closeMethod();
@@ -165,6 +168,13 @@ export class UI {
     if (this.dom.chooser.hidden) return;
     this.dom.chooser.hidden = true;
     this.dom.openChooser.focus();
+  }
+
+  /** The button names the view it leads to, not the one already on screen. */
+  setViewKind(kind) {
+    const globe = kind === 'globe';
+    this.dom.toggleView.setAttribute('aria-pressed', String(globe));
+    this.dom.toggleViewLabel.textContent = globe ? 'Flat chart' : 'Globe';
   }
 
   setNowPlaying(voyage) {

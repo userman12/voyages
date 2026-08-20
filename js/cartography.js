@@ -392,14 +392,15 @@ export function landLayer(offset) {
   </g>`;
 }
 
-/** Relief, vegetation, towns, sea monsters and compass roses for one tile. */
-export function decorLayer(offset) {
+/**
+ * Where every drawn symbol goes, as plain {lon, lat, sym, s} records.
+ *
+ * Kept apart from the rendering so the flat map and the globe place their
+ * relief, trees and waves identically — same seed, same scatter — and only
+ * the projection differs.
+ */
+export function decorItems(offset = 0) {
   const rnd = rng(1492 + offset);
-  const out = [];
-  const at = (lon, lat, sym, s = 1, extra = '') =>
-    `<use href="#${sym}" x="${f(projX(lon + offset))}" y="${f(projY(lat))}"
-       transform-origin="${f(projX(lon + offset))} ${f(projY(lat))}"
-       ${s !== 1 ? `transform="scale(${f(s)})"` : ''} ${extra}/>`;
 
   // --- waves, offshore only
   const waves = [];
@@ -414,10 +415,9 @@ export function decorLayer(offset) {
       const alt = rnd() < 0.42;
       if (keep < 0.34) continue;
       if (coastGap(jLon, jLat, 3) <= 2) continue;
-      waves.push(at(jLon, jLat, alt ? 'sym-wave2' : 'sym-wave', s));
+      waves.push({ lon: jLon, lat: jLat, sym: alt ? 'sym-wave2' : 'sym-wave', s });
     }
   }
-  out.push(`<g class="layer-waves">${waves.join('')}</g>`);
 
   // --- relief along the ranges
   const mtn = [];
@@ -438,13 +438,12 @@ export function decorLayer(offset) {
         const sym = high
           ? (r < 0.55 ? 'sym-mtn-c' : 'sym-mtn-d')
           : (r < 0.5 ? 'sym-mtn-a' : 'sym-mtn-b');
-        mtn.push({ lat, el: at(lon, lat, sym, 0.7 + range.h * 0.5) });
+        mtn.push({ lon, lat, sym, s: 0.7 + range.h * 0.5 });
       }
     }
   }
   // sorted north to south: what lies lower overlaps what lies higher
   mtn.sort((a, b) => b.lat - a.lat);
-  out.push(`<g class="layer-relief">${mtn.map((m) => m.el).join('')}</g>`);
 
   // --- vegetation
   const trees = [];
@@ -458,22 +457,38 @@ export function decorLayer(offset) {
       const lon = lon0 + (Math.cos(a) * r) / cs;
       const s = 0.75 + rnd() * 0.5;
       if (!isLand(lon, lat)) continue;
-      trees.push({ lat, el: at(lon, lat, type === 'conifer' ? 'sym-conifer' : 'sym-palm', s) });
+      trees.push({ lon, lat, sym: type === 'conifer' ? 'sym-conifer' : 'sym-palm', s });
     }
   }
   trees.sort((a, b) => b.lat - a.lat);
-  out.push(`<g class="layer-trees">${trees.map((t) => t.el).join('')}</g>`);
 
   // --- sea decorations
-  const decor = SEA_CREATURES.map((c) => {
-    const sym = c.type === 'serpent' ? 'sym-serpent' : c.type === 'whale' ? 'sym-whale' : 'sym-kraken';
-    return at(c.lon, c.lat, sym, c.scale * 1.5, 'opacity=".62"');
-  }).join('');
-  const roses = COMPASS_ROSES.map((c) =>
-    at(c.lon, c.lat, 'sym-compass', c.size / 12, 'opacity=".5"')).join('');
-  out.push(`<g class="layer-decor">${decor}${roses}</g>`);
+  const decor = SEA_CREATURES.map((c) => ({
+    lon: c.lon, lat: c.lat, s: c.scale * 1.5, opacity: 0.62,
+    sym: c.type === 'serpent' ? 'sym-serpent' : c.type === 'whale' ? 'sym-whale' : 'sym-kraken'
+  }));
+  const roses = COMPASS_ROSES.map((c) => ({
+    lon: c.lon, lat: c.lat, sym: 'sym-compass', s: c.size / 12, opacity: 0.5
+  }));
 
-  return out.join('');
+  return { waves, mtn, trees, decor, roses };
+}
+
+/** Relief, vegetation, towns, sea monsters and compass roses for one tile. */
+export function decorLayer(offset) {
+  const { waves, mtn, trees, decor, roses } = decorItems(offset);
+  const at = ({ lon, lat, sym, s = 1, opacity }) =>
+    `<use href="#${sym}" x="${f(projX(lon + offset))}" y="${f(projY(lat))}"
+       transform-origin="${f(projX(lon + offset))} ${f(projY(lat))}"
+       ${s !== 1 ? `transform="scale(${f(s)})"` : ''}
+       ${opacity != null ? `opacity="${opacity}"` : ''}/>`;
+
+  return [
+    `<g class="layer-waves">${waves.map(at).join('')}</g>`,
+    `<g class="layer-relief">${mtn.map(at).join('')}</g>`,
+    `<g class="layer-trees">${trees.map(at).join('')}</g>`,
+    `<g class="layer-decor">${decor.map(at).join('')}${roses.map(at).join('')}</g>`
+  ].join('');
 }
 
 /** Port towns at the expedition's stops. */

@@ -27,7 +27,8 @@ The repository is ready as-is: enable GitHub Pages on branch `main`, folder
 index.html            app shell
 css/style.css         theme, layout, responsive, prefers-reduced-motion
 js/main.js            state, playback, URL sync
-js/scene.js           SVG scene: 2D camera, route, animated ship, markers
+js/scene.js           flat view: 2D camera, route, animated ship, markers
+js/globe.js           globe view: same chart under an orthographic projection
 js/cartography.js     chart drawing: symbols, land, relief, decorations
 js/geo.js             routes on the sphere, longitude unwrapping, time model
 js/format.js          dates, durations and distances
@@ -47,6 +48,7 @@ Every expedition and every stop has a direct link:
 ```
 ?voyage=columbus-1492
 ?voyage=magellan-1519&step=3
+?voyage=cook-1768&view=globe
 ```
 
 The **Share** button copies the link to the current state.
@@ -60,6 +62,7 @@ The **Share** button copies the link to the current state.
 | Speed | 0.5× · 1× · 2× · 4× |
 | Scrub the timeline | slider or stop markers |
 | Pan / zoom the chart | drag, wheel, pinch |
+| Flat chart ↔ globe | the **Globe** button in the top bar |
 | Close a dialog | Esc |
 
 Dragging the chart leaves **Follow ship** mode; the button of the same name
@@ -87,6 +90,25 @@ An illustrated nautical chart in 3/4 perspective. The full rules live in
   fits the window and stays centred, and it can never be dragged past its own
   edges. On tall screens it still fills at least 68% of the height, otherwise it
   would shrink to a strip.
+
+## Globe view
+
+The same chart on a sphere — not a 3D render, and not a second set of artwork:
+the identical symbols, palette and line work run through an **orthographic
+projection** instead of an equirectangular one. `decorItems()` in
+`js/cartography.js` hands both views the same seeded scatter of relief, trees
+and waves, so a mountain sits on the same ridge either way.
+
+- Points behind the horizon are **pushed out onto the limb** rather than
+  dropped, so a continent crossing the edge closes along the rim instead of
+  being cut by a chord across its own middle.
+- **Following the ship turns the globe gradually** — it eases toward the ship
+  rather than tracking it, so a voyage reads as the world rolling underneath.
+- The zoom range is deliberately short: past a point a sphere stops reading as
+  one, and that is what the flat chart is for.
+- Framing centres on **the ship, not the route's centroid** — a round-the-world
+  track has no centre that shows all of it, and the centroid of one can sit at
+  the antipode of the departure.
 
 ## Interface
 

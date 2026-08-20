@@ -21,6 +21,10 @@ const state = {
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+/** Which projection is on screen: the flat chart or the globe. */
+let viewKind = 'map';
+let sceneMods = null;
+
 /** Space taken by the panels: the route should be framed beside them, not under. */
 function panelInset() {
   const p = document.getElementById('context-panel');
@@ -43,9 +47,11 @@ function readUrl() {
   const p = new URLSearchParams(location.search);
   const id = p.get('voyage');
   const step = p.get('step');
+  const view = p.get('view');
   return {
     id: VOYAGES.some((v) => v.id === id) ? id : null,
-    step: step != null && /^\d+$/.test(step) ? Number(step) : null
+    step: step != null && /^\d+$/.test(step) ? Number(step) : null,
+    view: view === 'globe' || view === 'map' ? view : null
   };
 }
 
@@ -55,6 +61,7 @@ function writeUrl() {
     p.set('voyage', state.voyage.id);
     if (state.started && state.stopIndex > 0) p.set('step', String(state.stopIndex));
   }
+  if (viewKind === 'globe') p.set('view', 'globe');
   const q = p.toString();
   history.replaceState(null, '', q ? `?${q}` : location.pathname);
 }
@@ -198,6 +205,42 @@ function selectVoyage(id, { step = null } = {}) {
   writeUrl();
 }
 
+/**
+ * Swaps the projection. The voyage, the position along it and the follow state
+ * carry across, so switching reads as the same journey seen another way rather
+ * than a reload.
+ */
+function setViewKind(kind, { initial = false } = {}) {
+  if (!initial && kind === viewKind) return;
+  viewKind = kind;
+
+  const following = scene ? scene.follow : true;
+  if (scene) scene.dispose();
+
+  const Ctor = kind === 'globe' ? sceneMods.globe.Globe : sceneMods.scene.Scene;
+  scene = new Ctor(document.getElementById('stage'), { reducedMotion });
+  scene.onUserInteract = () => ui.setFollow(false);
+  window.__scene = scene;
+
+  if (state.route) {
+    scene.setRoute(state.route);
+    scene.setProgress(state.progress);
+    // the route is already on screen: bring it back at full strength, not faded in
+    routeFade = 1;
+    scene.setRouteOpacity(1);
+    scene.setFollow(following);
+    const stop = state.route.stops[Math.max(0, state.stopIndex)];
+    if (following && state.started) {
+      scene.flyTo({ lat: stop.lat, lon: stop.mapLon, deg: FOLLOW, duration: 0 });
+    } else {
+      scene.fitRoute(state.route, { duration: 0, ...panelInset() });
+    }
+  }
+
+  ui.setViewKind(kind);
+  writeUrl();
+}
+
 /* ------------------------------------------------------------------- boot */
 
 async function boot() {
@@ -243,6 +286,7 @@ async function boot() {
           });
         }
       },
+      onViewToggle: () => setViewKind(viewKind === 'globe' ? 'map' : 'globe'),
       onShare: async () => {
         try {
           await navigator.clipboard.writeText(location.href);
@@ -256,28 +300,27 @@ async function boot() {
 
   ui.setSpeed(speed());
 
-  let mod;
+  let flat, globe;
   try {
-    [mod, geo] = await Promise.all([import('./scene.js'), import('./geo.js')]);
+    [flat, globe, geo] = await Promise.all([
+      import('./scene.js'), import('./globe.js'), import('./geo.js')
+    ]);
   } catch (err) {
     console.error(err);
     ui.loaderError('The map could not be drawn. Please reload the page.');
     return;
   }
-
-  scene = new mod.Scene(document.getElementById('stage'), { reducedMotion });
-  scene.onUserInteract = () => ui.setFollow(false);
+  sceneMods = { scene: flat, globe };
 
   // when the panel comes or goes, the map reclaims the freed space
   ui.onPanelToggle = () => {
     if (!state.route || state.playing || scene.follow) return;
     scene.fitRoute(state.route, { duration: reducedMotion ? 0 : 900, ...panelInset() });
   };
-  window.__scene = scene; // handy for inspecting the scene from the console
-
   ui.hideLoader();
 
-  const { id, step } = readUrl();
+  const { id, step, view } = readUrl();
+  setViewKind(view || 'map', { initial: true });
   if (id) selectVoyage(id, { step });
   else ui.showIntro(true);
 
